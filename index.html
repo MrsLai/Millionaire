@@ -93,7 +93,7 @@
                 <h1 class="text-xl md:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100">
                     APAC MILLIONAIRE
                 </h1>
-                <p id="room-status" class="text-xs text-sky-400 font-semibold">Connecting...</p>
+                <p id="room-status" class="text-xs text-sky-400 font-semibold">Connecting to Game Server...</p>
             </div>
         </div>
 
@@ -330,13 +330,13 @@
             }
         ];
 
-        let currentUser = null;
-        let userId = "";
+        let userId = null;
         let playerName = "";
         let isHost = false;
         let selectedOption = null;
         let gameState = { currentQuestion: 0, isRevealed: false, active: true };
         let playersData = {};
+        let isOfflineMode = false;
 
         const GAME_STATE_DOC = doc(db, 'game_room', 'state');
         const QUESTIONS_DOC = doc(db, 'game_room', 'questions');
@@ -345,18 +345,20 @@
         async function initAuth() {
             try {
                 const res = await signInAnonymously(auth);
-                currentUser = res.user;
-                userId = currentUser.uid;
+                userId = res.user.uid;
                 document.getElementById('room-status').innerText = "Connected Live";
                 document.getElementById('room-status').classList.replace('text-sky-400', 'text-emerald-400');
             } catch (err) {
-                console.warn("Firebase Auth Error fallback triggered:", err.message);
-                // Fallback ID generation if Anonymous Auth is disabled in Firebase Console
-                userId = "guest_" + Math.random().toString(36).substring(2, 10);
-                currentUser = { uid: userId };
-                document.getElementById('room-status').innerText = "Connected (Guest Mode)";
-                document.getElementById('room-status').classList.replace('text-sky-400', 'text-amber-400');
+                console.warn("Firebase Auth/Permission notice:", err.message);
+                enableLocalFallback("Local Standalone Mode");
             }
+        }
+
+        function enableLocalFallback(statusText) {
+            isOfflineMode = true;
+            userId = userId || "player_" + Math.random().toString(36).substring(2, 8);
+            document.getElementById('room-status').innerText = statusText;
+            document.getElementById('room-status').className = "text-xs text-amber-400 font-semibold";
         }
 
         function renderLadder(currentIdx) {
@@ -407,17 +409,29 @@
 
             document.getElementById('lock-in-btn').addEventListener('click', async () => {
                 if (!selectedOption || !userId) return;
-                try {
-                    const playerDocRef = doc(db, 'players', userId);
-                    await updateDoc(playerDocRef, {
-                        [`answers.q${gameState.currentQuestion}`]: selectedOption,
-                        locked: true
-                    });
-                    document.getElementById('lock-in-btn').disabled = true;
-                    document.getElementById('lock-in-btn').innerHTML = `<i class="fa-solid fa-check"></i> ANSWER LOCKED`;
-                } catch (e) {
-                    console.error("Error locking answer:", e);
+                
+                // Always update local state
+                if (!playersData[userId]) {
+                    playersData[userId] = { name: playerName, score: 0, answers: {} };
                 }
+                if (!playersData[userId].answers) playersData[userId].answers = {};
+                playersData[userId].answers[`q${gameState.currentQuestion}`] = selectedOption;
+
+                document.getElementById('lock-in-btn').disabled = true;
+                document.getElementById('lock-in-btn').innerHTML = `<i class="fa-solid fa-check"></i> ANSWER LOCKED`;
+
+                if (!isOfflineMode) {
+                    try {
+                        const playerDocRef = doc(db, 'players', userId);
+                        await updateDoc(playerDocRef, {
+                            [`answers.q${gameState.currentQuestion}`]: selectedOption,
+                            locked: true
+                        });
+                    } catch (e) {
+                        console.warn("Firestore save fallback triggered:", e.message);
+                    }
+                }
+                renderLeaderboardAndTally();
             });
 
             document.getElementById('reveal-answer-btn').addEventListener('click', async () => {
@@ -427,34 +441,70 @@
                     const p = playersData[pid];
                     const playerAns = p.answers ? p.answers[`q${gameState.currentQuestion}`] : null;
                     if (playerAns === currentQ.correct && !p[`scored_q${gameState.currentQuestion}`]) {
-                        const newScore = (p.score || 0) + 100;
-                        const pRef = doc(db, 'players', pid);
-                        await updateDoc(pRef, {
-                            score: newScore,
-                            [`scored_q${gameState.currentQuestion}`]: true
-                        });
+                        p.score = (p.score || 0) + 100;
+                        p[`scored_q${gameState.currentQuestion}`] = true;
+                        if (!isOfflineMode) {
+                            try {
+                                const pRef = doc(db, 'players', pid);
+                                await updateDoc(pRef, {
+                                    score: p.score,
+                                    [`scored_q${gameState.currentQuestion}`]: true
+                                });
+                            } catch (e) {
+                                console.warn("Score sync warning:", e.message);
+                            }
+                        }
                     }
                 }
-                await updateDoc(GAME_STATE_DOC, { isRevealed: true });
+                gameState.isRevealed = true;
+                if (!isOfflineMode) {
+                    try {
+                        await updateDoc(GAME_STATE_DOC, { isRevealed: true });
+                    } catch (e) {
+                        console.warn("Reveal state sync warning:", e.message);
+                    }
+                }
+                renderQuestionUI();
+                renderLeaderboardAndTally();
             });
 
             document.getElementById('next-q-btn').addEventListener('click', async () => {
                 if (!isHost) return;
                 if (gameState.currentQuestion < QUESTIONS.length - 1) {
-                    await updateDoc(GAME_STATE_DOC, {
-                        currentQuestion: gameState.currentQuestion + 1,
-                        isRevealed: false
-                    });
+                    gameState.currentQuestion += 1;
+                    gameState.isRevealed = false;
+                    selectedOption = null;
+                    if (!isOfflineMode) {
+                        try {
+                            await updateDoc(GAME_STATE_DOC, {
+                                currentQuestion: gameState.currentQuestion,
+                                isRevealed: false
+                            });
+                        } catch (e) {
+                            console.warn("Next question sync warning:", e.message);
+                        }
+                    }
+                    renderQuestionUI();
                 }
             });
 
             document.getElementById('prev-q-btn').addEventListener('click', async () => {
                 if (!isHost) return;
                 if (gameState.currentQuestion > 0) {
-                    await updateDoc(GAME_STATE_DOC, {
-                        currentQuestion: gameState.currentQuestion - 1,
-                        isRevealed: false
-                    });
+                    gameState.currentQuestion -= 1;
+                    gameState.isRevealed = false;
+                    selectedOption = null;
+                    if (!isOfflineMode) {
+                        try {
+                            await updateDoc(GAME_STATE_DOC, {
+                                currentQuestion: gameState.currentQuestion,
+                                isRevealed: false
+                            });
+                        } catch (e) {
+                            console.warn("Prev question sync warning:", e.message);
+                        }
+                    }
+                    renderQuestionUI();
                 }
             });
 
@@ -501,27 +551,43 @@
 
                 if (updatedList.length > 0) {
                     QUESTIONS = updatedList;
-                    await setDoc(QUESTIONS_DOC, { list: QUESTIONS });
-                    await updateDoc(GAME_STATE_DOC, { currentQuestion: 0, isRevealed: false });
+                    gameState.currentQuestion = 0;
+                    gameState.isRevealed = false;
+                    if (!isOfflineMode) {
+                        try {
+                            await setDoc(QUESTIONS_DOC, { list: QUESTIONS });
+                            await updateDoc(GAME_STATE_DOC, { currentQuestion: 0, isRevealed: false });
+                        } catch (e) {
+                            console.warn("Save questions sync warning:", e.message);
+                        }
+                    }
+                    renderQuestionUI();
                     closeQuestionsModal();
                 }
             });
 
             document.getElementById('reset-game-btn').addEventListener('click', async () => {
                 if (!isHost) return;
-                const querySnap = await getDocs(PLAYERS_COLLECTION);
-                querySnap.forEach(async (pDoc) => {
-                    await updateDoc(doc(PLAYERS_COLLECTION, pDoc.id), {
-                        score: 0,
-                        answers: {}
-                    });
-                });
+                for (const pid in playersData) {
+                    playersData[pid].score = 0;
+                    playersData[pid].answers = {};
+                }
+                gameState.currentQuestion = 0;
+                gameState.isRevealed = false;
 
-                await setDoc(GAME_STATE_DOC, {
-                    currentQuestion: 0,
-                    isRevealed: false,
-                    active: true
-                });
+                if (!isOfflineMode) {
+                    try {
+                        const querySnap = await getDocs(PLAYERS_COLLECTION);
+                        querySnap.forEach(async (pDoc) => {
+                            await updateDoc(doc(PLAYERS_COLLECTION, pDoc.id), { score: 0, answers: {} });
+                        });
+                        await setDoc(GAME_STATE_DOC, { currentQuestion: 0, isRevealed: false, active: true });
+                    } catch (e) {
+                        console.warn("Reset quiz sync warning:", e.message);
+                    }
+                }
+                renderQuestionUI();
+                renderLeaderboardAndTally();
             });
         }
 
@@ -580,14 +646,21 @@
             document.getElementById('game-screen').classList.remove('hidden');
             document.getElementById('user-info-bar').classList.remove('hidden');
 
-            if (userId) {
-                const playerRef = doc(db, 'players', userId);
-                await setDoc(playerRef, {
-                    name: playerName,
-                    isHost: isHost,
-                    score: 0,
-                    answers: {}
-                }, { merge: true });
+            playersData[userId] = {
+                name: playerName,
+                isHost: isHost,
+                score: 0,
+                answers: {}
+            };
+
+            if (userId && !isOfflineMode) {
+                try {
+                    const playerRef = doc(db, 'players', userId);
+                    await setDoc(playerRef, playersData[userId], { merge: true });
+                } catch (err) {
+                    console.warn("Join player Firestore write warning:", err.message);
+                    enableLocalFallback("Local Standalone Mode");
+                }
             }
 
             updateHostUI();
@@ -596,43 +669,55 @@
 
         function updateHostUI() {
             const hostControls = document.getElementById('host-controls');
-            const lockInBtn = document.getElementById('lock-in-btn');
-
             if (isHost) {
                 hostControls.classList.remove('hidden');
-                lockInBtn.classList.add('hidden');
             } else {
                 hostControls.classList.add('hidden');
-                lockInBtn.classList.remove('hidden');
             }
+            renderQuestionUI();
         }
 
         function listenToRoomUpdates() {
-            onSnapshot(QUESTIONS_DOC, (snap) => {
-                if (snap.exists() && snap.data().list?.length) {
-                    QUESTIONS = snap.data().list;
-                    renderQuestionUI();
-                } else {
-                    setDoc(QUESTIONS_DOC, { list: QUESTIONS });
-                }
-            }, (err) => console.error("Questions Sync Error:", err));
-
-            onSnapshot(GAME_STATE_DOC, (docSnap) => {
-                if (docSnap.exists()) {
-                    gameState = docSnap.data();
-                } else {
-                    setDoc(GAME_STATE_DOC, { currentQuestion: 0, isRevealed: false, active: true });
-                }
+            if (isOfflineMode) {
                 renderQuestionUI();
-            }, (err) => console.error("Game State Sync Error:", err));
-
-            onSnapshot(PLAYERS_COLLECTION, (snapshot) => {
-                playersData = {};
-                snapshot.forEach(doc => {
-                    playersData[doc.id] = doc.data();
-                });
                 renderLeaderboardAndTally();
-            }, (err) => console.error("Players Sync Error:", err));
+                return;
+            }
+
+            try {
+                onSnapshot(QUESTIONS_DOC, (snap) => {
+                    if (snap.exists() && snap.data().list?.length) {
+                        QUESTIONS = snap.data().list;
+                        renderQuestionUI();
+                    }
+                }, (err) => {
+                    console.warn("Questions snapshot error:", err.message);
+                    enableLocalFallback("Local Standalone Mode");
+                });
+
+                onSnapshot(GAME_STATE_DOC, (docSnap) => {
+                    if (docSnap.exists()) {
+                        gameState = docSnap.data();
+                    }
+                    renderQuestionUI();
+                }, (err) => {
+                    console.warn("Game State snapshot error:", err.message);
+                    enableLocalFallback("Local Standalone Mode");
+                });
+
+                onSnapshot(PLAYERS_COLLECTION, (snapshot) => {
+                    snapshot.forEach(doc => {
+                        playersData[doc.id] = doc.data();
+                    });
+                    renderLeaderboardAndTally();
+                }, (err) => {
+                    console.warn("Players snapshot error:", err.message);
+                    enableLocalFallback("Local Standalone Mode");
+                });
+            } catch (err) {
+                console.warn("Firebase listener exception:", err.message);
+                enableLocalFallback("Local Standalone Mode");
+            }
         }
 
         function renderQuestionUI() {
