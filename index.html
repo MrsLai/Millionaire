@@ -362,7 +362,6 @@
                 document.getElementById('room-status').innerText = "Connected Live";
                 document.getElementById('room-status').className = "text-xs text-emerald-400 font-semibold";
             }
-            // Start listening right away so Host sees players instantly upon joining
             listenToRoomUpdates();
         }
 
@@ -460,7 +459,7 @@
                 }
                 gameState.isRevealed = true;
                 try {
-                    await setDoc(GAME_STATE_DOC, { isRevealed: true }, { merge: true });
+                    await setDoc(GAME_STATE_DOC, { currentQuestion: gameState.currentQuestion, isRevealed: true }, { merge: true });
                 } catch (e) {
                     console.warn("Reveal state sync warning:", e.message);
                 }
@@ -471,36 +470,32 @@
             document.getElementById('next-q-btn').addEventListener('click', async () => {
                 if (!isHost) return;
                 if (gameState.currentQuestion < QUESTIONS.length - 1) {
-                    gameState.currentQuestion += 1;
-                    gameState.isRevealed = false;
+                    const newQIndex = gameState.currentQuestion + 1;
                     selectedOption = null;
                     try {
                         await setDoc(GAME_STATE_DOC, {
-                            currentQuestion: gameState.currentQuestion,
+                            currentQuestion: newQIndex,
                             isRevealed: false
                         }, { merge: true });
                     } catch (e) {
                         console.warn("Next question sync warning:", e.message);
                     }
-                    renderQuestionUI();
                 }
             });
 
             document.getElementById('prev-q-btn').addEventListener('click', async () => {
                 if (!isHost) return;
                 if (gameState.currentQuestion > 0) {
-                    gameState.currentQuestion -= 1;
-                    gameState.isRevealed = false;
+                    const newQIndex = gameState.currentQuestion - 1;
                     selectedOption = null;
                     try {
                         await setDoc(GAME_STATE_DOC, {
-                            currentQuestion: gameState.currentQuestion,
+                            currentQuestion: newQIndex,
                             isRevealed: false
                         }, { merge: true });
                     } catch (e) {
                         console.warn("Prev question sync warning:", e.message);
                     }
-                    renderQuestionUI();
                 }
             });
 
@@ -677,9 +672,14 @@
 
                 onSnapshot(GAME_STATE_DOC, (docSnap) => {
                     if (docSnap.exists()) {
-                        gameState = docSnap.data();
+                        const newRemoteState = docSnap.data();
+                        if (newRemoteState.currentQuestion !== gameState.currentQuestion) {
+                            selectedOption = null;
+                        }
+                        gameState = newRemoteState;
                     }
                     renderQuestionUI();
+                    renderLeaderboardAndTally();
                 }, (err) => {
                     console.warn("Game State snapshot warning:", err.message);
                 });
@@ -708,6 +708,8 @@
             document.getElementById('question-text').innerText = qData.q;
             document.getElementById('host-q-status').innerText = `Question ${gameState.currentQuestion + 1} of ${QUESTIONS.length}`;
 
+            const myCurrentAns = userId ? playersData[userId]?.answers?.[`q${gameState.currentQuestion}`] : null;
+
             const options = ['A', 'B', 'C', 'D'];
             options.forEach(opt => {
                 const btn = document.getElementById(`opt-${opt}`);
@@ -716,27 +718,26 @@
 
                 btn.className = 'option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3';
 
-                if (userId && playersData[userId]?.answers?.[`q${gameState.currentQuestion}`] === opt) {
+                if (myCurrentAns === opt || (!myCurrentAns && selectedOption === opt)) {
                     btn.classList.add('selected');
                 }
 
                 if (gameState.isRevealed) {
                     if (opt === qData.correct) {
                         btn.classList.add('correct');
-                    } else if (userId && playersData[userId]?.answers?.[`q${gameState.currentQuestion}`] === opt) {
+                    } else if (myCurrentAns === opt) {
                         btn.classList.add('wrong');
                     }
                 }
             });
 
-            const myAns = userId ? playersData[userId]?.answers?.[`q${gameState.currentQuestion}`] : null;
             const lockBtn = document.getElementById('lock-in-btn');
 
-            if (myAns) {
+            if (myCurrentAns) {
                 lockBtn.disabled = true;
                 lockBtn.innerHTML = `<i class="fa-solid fa-check"></i> ANSWER LOCKED`;
             } else {
-                lockBtn.disabled = !selectedOption;
+                lockBtn.disabled = !selectedOption || gameState.isRevealed;
                 lockBtn.innerHTML = `<i class="fa-solid fa-lock"></i> LOCK IN ANSWER`;
             }
 
