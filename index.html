@@ -195,6 +195,15 @@
             </div>
 
             <div id="active-quiz-view" class="hidden flex flex-col gap-4">
+                <!-- Timer Display Bar -->
+                <div class="flex justify-between items-center bg-slate-900/80 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-bold text-amber-300">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-clock text-amber-400 text-lg animate-pulse"></i>
+                        <span>TIME REMAINING:</span>
+                    </div>
+                    <div id="countdown-timer" class="text-xl font-black font-mono text-amber-400">30s</div>
+                </div>
+
                 <!-- Lifelines -->
                 <div class="flex justify-center items-center gap-4 my-1">
                     <div class="w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-base hover:scale-105 transition cursor-pointer" title="Ask Phone Friend">
@@ -277,7 +286,7 @@
                     <h2 class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100 uppercase tracking-widest">
                         QUIZ CHAMPION!
                     </h2>
-                    <p class="text-slate-300 text-sm mt-1">We have a official APAC Millionaire Winner!</p>
+                    <p class="text-slate-300 text-sm mt-1">We have an official APAC Millionaire Winner!</p>
                 </div>
 
                 <div class="bg-gradient-to-b from-amber-950/60 to-slate-900/80 p-6 rounded-2xl border border-amber-500/50 max-w-md mx-auto space-y-3">
@@ -285,7 +294,7 @@
                     <h3 id="winner-name" class="text-3xl font-black text-white tracking-wide">Player Name</h3>
                     <div class="pt-2">
                         <span class="text-xs text-slate-400 uppercase">Prize Cash Won</span>
-                        <div id="winner-prize" class="text-4xl font-black text-emerald-400 font-mono tracking-tight">$1,000,000</div>
+                        <div id="winner-prize" class="text-2xl md:text-3xl font-black text-emerald-400 font-mono tracking-tight">$1,000,000 Monopoly Money</div>
                     </div>
                 </div>
 
@@ -370,6 +379,8 @@
         const QUESTIONS_DOC = doc(db, 'game_room', 'questions');
         const PLAYERS_COLLECTION = collection(db, 'players');
 
+        const QUESTION_TIME_LIMIT = 30; // Seconds per question
+
         let QUESTIONS = [
             {
                 q: "Which APAC city is home to the world's highest rooftop infinity pool?",
@@ -413,8 +424,9 @@
         let playerName = "";
         let isHost = false;
         let selectedOption = null;
-        let gameState = { currentQuestion: 0, isRevealed: false, gameStarted: false, gameOver: false };
+        let gameState = { currentQuestion: 0, isRevealed: false, gameStarted: false, gameOver: false, startTime: null };
         let playersData = {};
+        let timerInterval = null;
 
         // Remove active player on browser refresh or close
         window.addEventListener('beforeunload', () => {
@@ -459,6 +471,42 @@
             }
         }
 
+        function startLocalTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            const timerEl = document.getElementById('countdown-timer');
+
+            timerInterval = setInterval(() => {
+                if (!gameState.gameStarted || gameState.isRevealed || gameState.gameOver || !gameState.startTime) {
+                    timerEl.innerText = "30s";
+                    timerEl.className = "text-xl font-black font-mono text-amber-400";
+                    return;
+                }
+
+                const now = Date.now();
+                const elapsedSeconds = Math.floor((now - gameState.startTime) / 1000);
+                const remaining = Math.max(0, QUESTION_TIME_LIMIT - elapsedSeconds);
+
+                timerEl.innerText = `${remaining}s`;
+
+                if (remaining <= 5) {
+                    timerEl.className = "text-xl font-black font-mono text-red-500 animate-bounce";
+                } else if (remaining <= 10) {
+                    timerEl.className = "text-xl font-black font-mono text-orange-400";
+                } else {
+                    timerEl.className = "text-xl font-black font-mono text-amber-400";
+                }
+
+                if (remaining === 0) {
+                    const lockBtn = document.getElementById('lock-in-btn');
+                    if (!gameState.isRevealed && lockBtn) {
+                        lockBtn.disabled = true;
+                        lockBtn.innerHTML = `<i class="fa-solid fa-clock"></i> TIME'S UP!`;
+                    }
+                }
+            }, 500);
+        }
+
         function setupEventListeners() {
             document.getElementById('join-form').addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -480,12 +528,14 @@
                 gameState.gameOver = false;
                 gameState.currentQuestion = 0;
                 gameState.isRevealed = false;
+                gameState.startTime = Date.now();
                 try {
                     await setDoc(GAME_STATE_DOC, {
                         gameStarted: true,
                         gameOver: false,
                         currentQuestion: 0,
-                        isRevealed: false
+                        isRevealed: false,
+                        startTime: gameState.startTime
                     }, { merge: true });
                 } catch (e) {
                     console.warn("Start game sync error:", e.message);
@@ -498,6 +548,13 @@
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     if (gameState.isRevealed || isHost || !gameState.gameStarted) return;
+
+                    // Check if time is up
+                    if (gameState.startTime) {
+                        const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+                        if (elapsed >= QUESTION_TIME_LIMIT) return;
+                    }
+
                     document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
                     selectedOption = btn.getAttribute('data-option');
@@ -574,11 +631,13 @@
                 if (gameState.currentQuestion < QUESTIONS.length - 1) {
                     const newQIndex = gameState.currentQuestion + 1;
                     selectedOption = null;
+                    const startTime = Date.now();
                     try {
                         await setDoc(GAME_STATE_DOC, {
                             currentQuestion: newQIndex,
                             isRevealed: false,
-                            gameOver: false
+                            gameOver: false,
+                            startTime: startTime
                         }, { merge: true });
                     } catch (e) {
                         console.warn("Next question sync warning:", e.message);
@@ -591,11 +650,13 @@
                 if (gameState.currentQuestion > 0) {
                     const newQIndex = gameState.currentQuestion - 1;
                     selectedOption = null;
+                    const startTime = Date.now();
                     try {
                         await setDoc(GAME_STATE_DOC, {
                             currentQuestion: newQIndex,
                             isRevealed: false,
-                            gameOver: false
+                            gameOver: false,
+                            startTime: startTime
                         }, { merge: true });
                     } catch (e) {
                         console.warn("Prev question sync warning:", e.message);
@@ -672,6 +733,7 @@
                 gameState.isRevealed = false;
                 gameState.gameStarted = false;
                 gameState.gameOver = false;
+                gameState.startTime = null;
 
                 try {
                     const querySnap = await getDocs(PLAYERS_COLLECTION);
@@ -682,7 +744,8 @@
                         currentQuestion: 0, 
                         isRevealed: false, 
                         gameStarted: false, 
-                        gameOver: false 
+                        gameOver: false,
+                        startTime: null
                     });
                 } catch (e) {
                     console.warn("Reset quiz sync warning:", e.message);
@@ -802,7 +865,8 @@
                             currentQuestion: newRemoteState.currentQuestion ?? 0,
                             isRevealed: !!newRemoteState.isRevealed,
                             gameStarted: !!newRemoteState.gameStarted,
-                            gameOver: !!newRemoteState.gameOver
+                            gameOver: !!newRemoteState.gameOver,
+                            startTime: newRemoteState.startTime ?? null
                         };
                     }
                     renderQuestionUI();
@@ -911,7 +975,7 @@
         function renderWinnerSection() {
             const playersArray = Object.keys(playersData)
                 .map(id => ({ id, ...playersData[id] }))
-                .filter(p => !p.isHost); // Exclude host from player ranking
+                .filter(p => !p.isHost);
 
             playersArray.sort((a, b) => (b.score || 0) - (a.score || 0));
 
@@ -923,10 +987,8 @@
                 const winner = playersArray[0];
                 winnerNameEl.innerText = winner.name || "Anonymous";
 
-                // Calculate Prize Money based on highest safe question tier reached
                 const maxScore = winner.score || 0;
-                const grandPrize = QUESTIONS[QUESTIONS.length - 1].prize || "$1,000,000";
-                winnerPrizeEl.innerText = maxScore > 0 ? grandPrize : "$0";
+                winnerPrizeEl.innerText = maxScore > 0 ? "$1,000,000 Monopoly Money" : "$0";
 
                 podiumListEl.innerHTML = '';
                 playersArray.forEach((p, idx) => {
@@ -1004,6 +1066,7 @@
         window.onload = async () => {
             await initAuth();
             setupEventListeners();
+            startLocalTimer();
             renderLadder(0);
         };
     </script>
