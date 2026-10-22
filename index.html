@@ -78,6 +78,14 @@
             background: #1E293B;
             border-radius: 4px;
         }
+
+        .trophy-bounce {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen justify-between p-2 md:p-6 overflow-x-hidden">
@@ -131,14 +139,18 @@
 
     <main id="game-screen" class="hidden w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         <div class="lg:col-span-3 flex flex-col gap-4">
-            <!-- Host Action Controls -->
+            
+            <!-- Host Action Controls Bar -->
             <div id="host-controls" class="hidden glass-card p-4 rounded-xl border-2 border-amber-500/60 bg-amber-950/20">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
                         <span class="bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded text-xs uppercase tracking-wider">Host Control</span>
-                        <span id="host-q-status" class="text-xs text-amber-200">Question 1 of 5</span>
+                        <span id="host-q-status" class="text-xs text-amber-200">Lobby Waiting Room</span>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
+                        <button id="start-game-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-1.5 rounded-lg transition shadow-md flex items-center gap-1">
+                            <i class="fa-solid fa-play"></i> Start Quiz Game
+                        </button>
                         <button id="edit-questions-btn" class="bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/40 text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1">
                             <i class="fa-solid fa-pen-to-square"></i> Edit Questions
                         </button>
@@ -158,81 +170,133 @@
                 </div>
             </div>
 
-            <!-- Lifelines -->
-            <div class="flex justify-center items-center gap-4 my-2">
-                <div class="w-16 h-12 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-lg hover:scale-105 transition cursor-pointer" title="Ask Phone Friend">
-                    <i class="fa-solid fa-mobile-screen-button"></i>
+            <div id="lobby-card" class="glass-card p-8 rounded-2xl text-center space-y-6 my-auto py-12">
+                <div class="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 text-4xl mx-auto trophy-bounce">
+                    <i class="fa-solid fa-users-line"></i>
                 </div>
-                <div class="w-16 h-12 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-lg hover:scale-105 transition cursor-pointer" title="Ask the Audience">
-                    <i class="fa-solid fa-users"></i>
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-black text-amber-300 uppercase tracking-wide">APAC Millionaire Lobby</h2>
+                    <p id="lobby-subtitle" class="text-slate-300 text-sm mt-2">
+                        Waiting for all team members to join before starting...
+                    </p>
                 </div>
-                <div class="w-16 h-12 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 font-extrabold text-sm shadow-lg hover:scale-105 transition cursor-pointer" title="50:50">
-                    50:50
+                
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-sky-500/30 max-w-sm mx-auto flex items-center justify-between">
+                    <span class="text-xs text-sky-300 font-bold uppercase tracking-wider">Players Joined:</span>
+                    <span id="lobby-player-count" class="text-xl font-black text-amber-400">0</span>
+                </div>
+
+                <div id="host-lobby-prompt" class="hidden">
+                    <p class="text-xs text-amber-400 font-medium mb-3">Once everyone is ready, click below to launch the quiz!</p>
+                    <button id="lobby-start-btn" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-black py-3 px-8 rounded-xl shadow-lg shadow-emerald-500/30 transition transform active:scale-95 text-lg">
+                        <i class="fa-solid fa-rocket mr-2"></i> START GAME NOW
+                    </button>
                 </div>
             </div>
 
-            <!-- Question Display -->
-            <div class="hexagon-btn p-6 md:p-8 text-center my-2 shadow-2xl flex items-center justify-center min-h-[120px] border-amber-400/80">
-                <h3 id="question-text" class="text-lg md:text-2xl font-bold text-white tracking-wide leading-relaxed">
-                    Waiting for the host to start the game...
-                </h3>
-            </div>
-
-            <!-- Answer Options -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <button id="opt-A" data-option="A" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
-                    <span class="text-amber-400 font-extrabold text-lg">A:</span>
-                    <span class="opt-text text-slate-200">Option A</span>
-                </button>
-                <button id="opt-B" data-option="B" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
-                    <span class="text-amber-400 font-extrabold text-lg">B:</span>
-                    <span class="opt-text text-slate-200">Option B</span>
-                </button>
-                <button id="opt-C" data-option="C" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
-                    <span class="text-amber-400 font-extrabold text-lg">C:</span>
-                    <span class="opt-text text-slate-200">Option C</span>
-                </button>
-                <button id="opt-D" data-option="D" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
-                    <span class="text-amber-400 font-extrabold text-lg">D:</span>
-                    <span class="opt-text text-slate-200">Option D</span>
-                </button>
-            </div>
-
-            <!-- Lock in button -->
-            <div class="flex justify-center mt-4">
-                <button id="lock-in-btn" disabled class="bg-gradient-to-r from-amber-500 to-amber-600 disabled:opacity-40 disabled:cursor-not-allowed hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-10 rounded-xl transition transform active:scale-95 shadow-xl text-lg flex items-center gap-2">
-                    <i class="fa-solid fa-lock"></i> LOCK IN ANSWER
-                </button>
-            </div>
-
-            <!-- Live Audience Tally -->
-            <div id="tally-box" class="glass-card p-4 rounded-xl mt-4">
-                <h4 class="text-xs uppercase font-bold text-sky-400 tracking-wider mb-2 flex items-center justify-between">
-                    <span><i class="fa-solid fa-chart-column mr-1"></i> Live Team Selections</span>
-                    <span id="locked-count-text" class="text-amber-300 font-normal">0/0 Locked In</span>
-                </h4>
-                <div class="grid grid-cols-4 gap-2 text-center text-xs">
-                    <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
-                        <span class="font-bold text-amber-400">A</span>
-                        <div id="tally-A" class="text-lg font-black text-white">0</div>
+            <div id="active-quiz-view" class="hidden flex flex-col gap-4">
+                <!-- Lifelines -->
+                <div class="flex justify-center items-center gap-4 my-1">
+                    <div class="w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-base hover:scale-105 transition cursor-pointer" title="Ask Phone Friend">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
                     </div>
-                    <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
-                        <span class="font-bold text-amber-400">B</span>
-                        <div id="tally-B" class="text-lg font-black text-white">0</div>
+                    <div class="w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-base hover:scale-105 transition cursor-pointer" title="Ask the Audience">
+                        <i class="fa-solid fa-users"></i>
                     </div>
-                    <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
-                        <span class="font-bold text-amber-400">C</span>
-                        <div id="tally-C" class="text-lg font-black text-white">0</div>
+                    <div class="w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 font-extrabold text-xs shadow-lg hover:scale-105 transition cursor-pointer" title="50:50">
+                        50:50
                     </div>
-                    <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
-                        <span class="font-bold text-amber-400">D</span>
-                        <div id="tally-D" class="text-lg font-black text-white">0</div>
+                </div>
+
+                <!-- Question Display -->
+                <div class="hexagon-btn p-6 md:p-8 text-center my-2 shadow-2xl flex items-center justify-center min-h-[120px] border-amber-400/80">
+                    <h3 id="question-text" class="text-lg md:text-2xl font-bold text-white tracking-wide leading-relaxed">
+                        Loading question...
+                    </h3>
+                </div>
+
+                <!-- Answer Options -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <button id="opt-A" data-option="A" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
+                        <span class="text-amber-400 font-extrabold text-lg">A:</span>
+                        <span class="opt-text text-slate-200">Option A</span>
+                    </button>
+                    <button id="opt-B" data-option="B" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
+                        <span class="text-amber-400 font-extrabold text-lg">B:</span>
+                        <span class="opt-text text-slate-200">Option B</span>
+                    </button>
+                    <button id="opt-C" data-option="C" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
+                        <span class="text-amber-400 font-extrabold text-lg">C:</span>
+                        <span class="opt-text text-slate-200">Option C</span>
+                    </button>
+                    <button id="opt-D" data-option="D" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
+                        <span class="text-amber-400 font-extrabold text-lg">D:</span>
+                        <span class="opt-text text-slate-200">Option D</span>
+                    </button>
+                </div>
+
+                <!-- Lock in button -->
+                <div class="flex justify-center mt-4">
+                    <button id="lock-in-btn" disabled class="bg-gradient-to-r from-amber-500 to-amber-600 disabled:opacity-40 disabled:cursor-not-allowed hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-10 rounded-xl transition transform active:scale-95 shadow-xl text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-lock"></i> LOCK IN ANSWER
+                    </button>
+                </div>
+
+                <!-- Live Audience Tally -->
+                <div id="tally-box" class="glass-card p-4 rounded-xl mt-4">
+                    <h4 class="text-xs uppercase font-bold text-sky-400 tracking-wider mb-2 flex items-center justify-between">
+                        <span><i class="fa-solid fa-chart-column mr-1"></i> Live Team Selections</span>
+                        <span id="locked-count-text" class="text-amber-300 font-normal">0/0 Locked In</span>
+                    </h4>
+                    <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-amber-400">A</span>
+                            <div id="tally-A" class="text-lg font-black text-white">0</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-amber-400">B</span>
+                            <div id="tally-B" class="text-lg font-black text-white">0</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-amber-400">C</span>
+                            <div id="tally-C" class="text-lg font-black text-white">0</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-amber-400">D</span>
+                            <div id="tally-D" class="text-lg font-black text-white">0</div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <div id="winner-screen" class="hidden glass-card p-8 rounded-2xl text-center space-y-6 my-auto border-2 border-amber-400 shadow-2xl">
+                <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 border-4 border-amber-300 flex items-center justify-center text-slate-950 text-5xl mx-auto trophy-bounce shadow-xl shadow-amber-500/30">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100 uppercase tracking-widest">
+                        QUIZ CHAMPION!
+                    </h2>
+                    <p class="text-slate-300 text-sm mt-1">We have a official APAC Millionaire Winner!</p>
+                </div>
+
+                <div class="bg-gradient-to-b from-amber-950/60 to-slate-900/80 p-6 rounded-2xl border border-amber-500/50 max-w-md mx-auto space-y-3">
+                    <p class="text-xs text-amber-400 uppercase tracking-widest font-bold">1st Place Winner</p>
+                    <h3 id="winner-name" class="text-3xl font-black text-white tracking-wide">Player Name</h3>
+                    <div class="pt-2">
+                        <span class="text-xs text-slate-400 uppercase">Prize Cash Won</span>
+                        <div id="winner-prize" class="text-4xl font-black text-emerald-400 font-mono tracking-tight">$1,000,000</div>
+                    </div>
+                </div>
+
+                <div class="max-w-md mx-auto pt-4">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Final Leaderboard Podium</h4>
+                    <div id="winner-podium-list" class="space-y-2"></div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Sidebar: Money Ladder & Leaderboard -->
         <div class="flex flex-col gap-4">
             <div class="glass-card p-4 rounded-xl border-l-4 border-amber-400">
                 <h3 class="text-sm font-bold text-amber-400 tracking-wider uppercase mb-3 flex items-center gap-2">
@@ -339,7 +403,7 @@
             }
         ];
 
-        // Ensure unique user ID per browser session (cleared when browser tab/window closes)
+        // Unique session ID cleared when browser tab is closed
         let userId = sessionStorage.getItem('apac_user_session');
         if (!userId) {
             userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
@@ -349,10 +413,10 @@
         let playerName = "";
         let isHost = false;
         let selectedOption = null;
-        let gameState = { currentQuestion: 0, isRevealed: false, active: true };
+        let gameState = { currentQuestion: 0, isRevealed: false, gameStarted: false, gameOver: false };
         let playersData = {};
 
-        // Remove player on tab close / refresh
+        // Remove active player on browser refresh or close
         window.addEventListener('beforeunload', () => {
             if (userId && !isHost) {
                 try {
@@ -383,8 +447,8 @@
                 const isPassed = i < currentIdx;
 
                 let rowBg = "bg-slate-900/60 text-slate-400 border-slate-800";
-                if (isCurrent) rowBg = "bg-amber-500 text-slate-950 border-amber-300 font-extrabold scale-105 shadow-md";
-                else if (isPassed) rowBg = "bg-emerald-950/40 text-emerald-400 border-emerald-800";
+                if (isCurrent && gameState.gameStarted) rowBg = "bg-amber-500 text-slate-950 border-amber-300 font-extrabold scale-105 shadow-md";
+                else if (isPassed && gameState.gameStarted) rowBg = "bg-emerald-950/40 text-emerald-400 border-emerald-800";
 
                 ladderEl.innerHTML += `
                     <div class="flex justify-between items-center px-3 py-1.5 rounded border ${rowBg} transition-all">
@@ -410,9 +474,30 @@
                 updateHostUI();
             });
 
+            const startGameAction = async () => {
+                if (!isHost) return;
+                gameState.gameStarted = true;
+                gameState.gameOver = false;
+                gameState.currentQuestion = 0;
+                gameState.isRevealed = false;
+                try {
+                    await setDoc(GAME_STATE_DOC, {
+                        gameStarted: true,
+                        gameOver: false,
+                        currentQuestion: 0,
+                        isRevealed: false
+                    }, { merge: true });
+                } catch (e) {
+                    console.warn("Start game sync error:", e.message);
+                }
+            };
+
+            document.getElementById('start-game-btn').addEventListener('click', startGameAction);
+            document.getElementById('lobby-start-btn').addEventListener('click', startGameAction);
+
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    if (gameState.isRevealed || isHost) return;
+                    if (gameState.isRevealed || isHost || !gameState.gameStarted) return;
                     document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
                     selectedOption = btn.getAttribute('data-option');
@@ -437,8 +522,7 @@
                     await setDoc(playerDocRef, {
                         name: playerName,
                         score: playersData[userId].score || 0,
-                        answers: playersData[userId].answers,
-                        locked: true
+                        answers: playersData[userId].answers
                     }, { merge: true });
                 } catch (e) {
                     console.warn("Firestore save answer warning:", e.message);
@@ -466,9 +550,18 @@
                         }
                     }
                 }
+
+                // Check if last question revealed
+                const isLastQuestion = gameState.currentQuestion === QUESTIONS.length - 1;
                 gameState.isRevealed = true;
+                gameState.gameOver = isLastQuestion;
+
                 try {
-                    await setDoc(GAME_STATE_DOC, { currentQuestion: gameState.currentQuestion, isRevealed: true }, { merge: true });
+                    await setDoc(GAME_STATE_DOC, { 
+                        currentQuestion: gameState.currentQuestion, 
+                        isRevealed: true,
+                        gameOver: isLastQuestion 
+                    }, { merge: true });
                 } catch (e) {
                     console.warn("Reveal state sync warning:", e.message);
                 }
@@ -484,7 +577,8 @@
                     try {
                         await setDoc(GAME_STATE_DOC, {
                             currentQuestion: newQIndex,
-                            isRevealed: false
+                            isRevealed: false,
+                            gameOver: false
                         }, { merge: true });
                     } catch (e) {
                         console.warn("Next question sync warning:", e.message);
@@ -500,7 +594,8 @@
                     try {
                         await setDoc(GAME_STATE_DOC, {
                             currentQuestion: newQIndex,
-                            isRevealed: false
+                            isRevealed: false,
+                            gameOver: false
                         }, { merge: true });
                     } catch (e) {
                         console.warn("Prev question sync warning:", e.message);
@@ -553,9 +648,16 @@
                     QUESTIONS = updatedList;
                     gameState.currentQuestion = 0;
                     gameState.isRevealed = false;
+                    gameState.gameStarted = false;
+                    gameState.gameOver = false;
                     try {
                         await setDoc(QUESTIONS_DOC, { list: QUESTIONS });
-                        await setDoc(GAME_STATE_DOC, { currentQuestion: 0, isRevealed: false }, { merge: true });
+                        await setDoc(GAME_STATE_DOC, { 
+                            currentQuestion: 0, 
+                            isRevealed: false, 
+                            gameStarted: false, 
+                            gameOver: false 
+                        }, { merge: true });
                     } catch (e) {
                         console.warn("Save questions sync warning:", e.message);
                     }
@@ -568,13 +670,20 @@
                 if (!isHost) return;
                 gameState.currentQuestion = 0;
                 gameState.isRevealed = false;
+                gameState.gameStarted = false;
+                gameState.gameOver = false;
 
                 try {
                     const querySnap = await getDocs(PLAYERS_COLLECTION);
                     querySnap.forEach(async (pDoc) => {
                         await deleteDoc(doc(PLAYERS_COLLECTION, pDoc.id));
                     });
-                    await setDoc(GAME_STATE_DOC, { currentQuestion: 0, isRevealed: false, active: true });
+                    await setDoc(GAME_STATE_DOC, { 
+                        currentQuestion: 0, 
+                        isRevealed: false, 
+                        gameStarted: false, 
+                        gameOver: false 
+                    });
                 } catch (e) {
                     console.warn("Reset quiz sync warning:", e.message);
                 }
@@ -660,10 +769,14 @@
 
         function updateHostUI() {
             const hostControls = document.getElementById('host-controls');
+            const hostLobbyPrompt = document.getElementById('host-lobby-prompt');
+
             if (isHost) {
                 hostControls.classList.remove('hidden');
+                hostLobbyPrompt.classList.remove('hidden');
             } else {
                 hostControls.classList.add('hidden');
+                hostLobbyPrompt.classList.add('hidden');
             }
             renderQuestionUI();
         }
@@ -685,7 +798,12 @@
                         if (newRemoteState.currentQuestion !== gameState.currentQuestion) {
                             selectedOption = null;
                         }
-                        gameState = newRemoteState;
+                        gameState = {
+                            currentQuestion: newRemoteState.currentQuestion ?? 0,
+                            isRevealed: !!newRemoteState.isRevealed,
+                            gameStarted: !!newRemoteState.gameStarted,
+                            gameOver: !!newRemoteState.gameOver
+                        };
                     }
                     renderQuestionUI();
                     renderLeaderboardAndTally();
@@ -717,6 +835,35 @@
         };
 
         function renderQuestionUI() {
+            const lobbyCard = document.getElementById('lobby-card');
+            const activeQuizView = document.getElementById('active-quiz-view');
+            const winnerScreen = document.getElementById('winner-screen');
+
+            // 1. GAME OVER / WINNER SCREEN
+            if (gameState.gameOver && gameState.isRevealed) {
+                lobbyCard.classList.add('hidden');
+                activeQuizView.classList.add('hidden');
+                winnerScreen.classList.remove('hidden');
+                renderWinnerSection();
+                renderLadder(QUESTIONS.length - 1);
+                return;
+            } else {
+                winnerScreen.classList.add('hidden');
+            }
+
+            // 2. LOBBY WAITING MODE
+            if (!gameState.gameStarted) {
+                lobbyCard.classList.remove('hidden');
+                activeQuizView.classList.add('hidden');
+                document.getElementById('host-q-status').innerText = "Lobby Waiting Room";
+                renderLadder(0);
+                return;
+            }
+
+            // 3. ACTIVE QUIZ PLAY
+            lobbyCard.classList.add('hidden');
+            activeQuizView.classList.remove('hidden');
+
             if (gameState.currentQuestion >= QUESTIONS.length) {
                 gameState.currentQuestion = 0;
             }
@@ -761,6 +908,45 @@
             renderLadder(gameState.currentQuestion);
         }
 
+        function renderWinnerSection() {
+            const playersArray = Object.keys(playersData)
+                .map(id => ({ id, ...playersData[id] }))
+                .filter(p => !p.isHost); // Exclude host from player ranking
+
+            playersArray.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+            const winnerNameEl = document.getElementById('winner-name');
+            const winnerPrizeEl = document.getElementById('winner-prize');
+            const podiumListEl = document.getElementById('winner-podium-list');
+
+            if (playersArray.length > 0) {
+                const winner = playersArray[0];
+                winnerNameEl.innerText = winner.name || "Anonymous";
+
+                // Calculate Prize Money based on highest safe question tier reached
+                const maxScore = winner.score || 0;
+                const grandPrize = QUESTIONS[QUESTIONS.length - 1].prize || "$1,000,000";
+                winnerPrizeEl.innerText = maxScore > 0 ? grandPrize : "$0";
+
+                podiumListEl.innerHTML = '';
+                playersArray.forEach((p, idx) => {
+                    const badgeIcon = idx === 0 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${idx + 1}`;
+                    podiumListEl.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-900/90 border border-slate-700 px-4 py-2 rounded-xl text-xs">
+                            <span class="font-bold text-slate-200 flex items-center gap-2">
+                                <span class="w-6 font-extrabold text-amber-400">${badgeIcon}</span> ${p.name || 'Anonymous'}
+                            </span>
+                            <span class="font-mono font-bold text-amber-300">${p.score || 0} pts</span>
+                        </div>
+                    `;
+                });
+            } else {
+                winnerNameEl.innerText = "No Players Joined";
+                winnerPrizeEl.innerText = "$0";
+                podiumListEl.innerHTML = `<p class="text-xs text-slate-500 italic">No player stats available.</p>`;
+            }
+        }
+
         function renderLeaderboardAndTally() {
             const leaderboardEl = document.getElementById('leaderboard-list');
             leaderboardEl.innerHTML = '';
@@ -768,7 +954,9 @@
             const playersArray = Object.keys(playersData).map(id => ({ id, ...playersData[id] }));
             playersArray.sort((a, b) => (b.score || 0) - (a.score || 0));
 
-            document.getElementById('player-count').innerText = `${playersArray.length} Joined`;
+            const nonHostCount = playersArray.filter(p => !p.isHost).length;
+            document.getElementById('player-count').innerText = `${nonHostCount} Joined`;
+            document.getElementById('lobby-player-count').innerText = nonHostCount;
 
             let tally = { A: 0, B: 0, C: 0, D: 0 };
             let lockedCount = 0;
@@ -778,7 +966,7 @@
             } else {
                 playersArray.forEach((p, idx) => {
                     const currentAns = p.answers ? p.answers[`q${gameState.currentQuestion}`] : null;
-                    if (currentAns) {
+                    if (currentAns && !p.isHost) {
                         tally[currentAns] = (tally[currentAns] || 0) + 1;
                         lockedCount++;
                     }
@@ -797,7 +985,7 @@
                                 </span>
                             </div>
                             <div class="flex items-center gap-2">
-                                ${currentAns ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/40">Locked</span>' : ''}
+                                ${currentAns && !p.isHost ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/40">Locked</span>' : ''}
                                 <span class="text-xs font-bold text-amber-400 font-mono">${p.score || 0} pts</span>
                                 ${isHost ? `<button onclick="window.removePlayer('${p.id}')" class="text-red-400 hover:text-red-300 ml-1 text-xs" title="Remove Player">&times;</button>` : ''}
                             </div>
@@ -810,7 +998,7 @@
             document.getElementById('tally-B').innerText = tally.B;
             document.getElementById('tally-C').innerText = tally.C;
             document.getElementById('tally-D').innerText = tally.D;
-            document.getElementById('locked-count-text').innerText = `${lockedCount}/${playersArray.length} Locked In`;
+            document.getElementById('locked-count-text').innerText = `${lockedCount}/${nonHostCount} Locked In`;
         }
 
         window.onload = async () => {
