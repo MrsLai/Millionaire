@@ -347,9 +347,9 @@
                 const res = await signInAnonymously(auth);
                 userId = res.user.uid;
                 document.getElementById('room-status').innerText = "Connected Live";
-                document.getElementById('room-status').classList.replace('text-sky-400', 'text-emerald-400');
+                document.getElementById('room-status').className = "text-xs text-emerald-400 font-semibold";
             } catch (err) {
-                console.warn("Firebase Auth/Permission notice:", err.message);
+                console.warn("Firebase Auth notice:", err.message);
                 enableLocalFallback("Local Standalone Mode");
             }
         }
@@ -658,8 +658,8 @@
                     const playerRef = doc(db, 'players', userId);
                     await setDoc(playerRef, playersData[userId], { merge: true });
                 } catch (err) {
-                    console.warn("Join player Firestore write warning:", err.message);
-                    enableLocalFallback("Local Standalone Mode");
+                    console.warn("Join player Firestore write warning (proceeding in live view):", err.message);
+                    // Do not drop to offline mode immediately on permission write fail if auth is alive
                 }
             }
 
@@ -691,8 +691,7 @@
                         renderQuestionUI();
                     }
                 }, (err) => {
-                    console.warn("Questions snapshot error:", err.message);
-                    enableLocalFallback("Local Standalone Mode");
+                    console.warn("Questions snapshot warning:", err.message);
                 });
 
                 onSnapshot(GAME_STATE_DOC, (docSnap) => {
@@ -701,8 +700,7 @@
                     }
                     renderQuestionUI();
                 }, (err) => {
-                    console.warn("Game State snapshot error:", err.message);
-                    enableLocalFallback("Local Standalone Mode");
+                    console.warn("Game State snapshot warning:", err.message);
                 });
 
                 onSnapshot(PLAYERS_COLLECTION, (snapshot) => {
@@ -711,12 +709,10 @@
                     });
                     renderLeaderboardAndTally();
                 }, (err) => {
-                    console.warn("Players snapshot error:", err.message);
-                    enableLocalFallback("Local Standalone Mode");
+                    console.warn("Players snapshot warning:", err.message);
                 });
             } catch (err) {
                 console.warn("Firebase listener exception:", err.message);
-                enableLocalFallback("Local Standalone Mode");
             }
         }
 
