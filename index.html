@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -130,8 +130,8 @@
                 <button type="submit" data-role="player" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3 px-6 rounded-xl transition transform active:scale-95 shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2">
                     <i class="fa-solid fa-gamepad"></i> Join as Player
                 </button>
-                <button type="button" id="join-host-btn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 px-6 rounded-xl border border-slate-700 text-sm transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-crown text-amber-400"></i> Host/Present Game
+                <button type="button" id="join-host-btn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 px-6 rounded-xl border border-slate-700 text-sm transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-crown text-amber-400"></i> <span id="host-btn-label">Host/Present Game</span>
                 </button>
             </div>
         </form>
@@ -440,7 +440,7 @@
         let playerName = "";
         let isHost = false;
         let selectedOption = null;
-        let gameState = { currentQuestion: 0, isRevealed: false, gameStarted: false, gameOver: false, startTime: null };
+        let gameState = { currentQuestion: 0, isRevealed: false, gameStarted: false, gameOver: false, startTime: null, isHostActive: false };
         let playersData = {};
         let timerInterval = null;
 
@@ -453,10 +453,16 @@
 
         // Remove active player on browser refresh or close
         window.addEventListener('beforeunload', () => {
-            if (userId && !isHost) {
-                try {
-                    deleteDoc(doc(db, 'players', userId));
-                } catch (e) {}
+            if (userId) {
+                if (isHost) {
+                    try {
+                        setDoc(GAME_STATE_DOC, { isHostActive: false }, { merge: true });
+                    } catch (e) {}
+                } else {
+                    try {
+                        deleteDoc(doc(db, 'players', userId));
+                    } catch (e) {}
+                }
             }
         });
 
@@ -539,13 +545,8 @@
             });
 
             document.getElementById('join-host-btn').addEventListener('click', () => {
-                joinGame(true);
-            });
-
-            document.getElementById('host-toggle-btn').addEventListener('click', () => {
-                if (isHost) {
-                    isHost = false;
-                    updateHostUI();
+                if (!gameState.isHostActive) {
+                    joinGame(true);
                 }
             });
 
@@ -819,6 +820,7 @@
                 gameState.gameStarted = false;
                 gameState.gameOver = false;
                 gameState.startTime = null;
+                gameState.isHostActive = false;
 
                 usedLifelines = { fiftyFifty: false, audience: false, phone: false };
                 document.querySelectorAll('.lifeline-btn').forEach(btn => btn.disabled = false);
@@ -833,7 +835,8 @@
                         isRevealed: false, 
                         gameStarted: false, 
                         gameOver: false,
-                        startTime: null
+                        startTime: null,
+                        isHostActive: false
                     });
                 } catch (e) {
                     console.warn("Reset quiz sync warning:", e.message);
@@ -899,20 +902,28 @@
             document.getElementById('game-screen').classList.remove('hidden');
             document.getElementById('user-info-bar').classList.remove('hidden');
 
-            const myPlayerData = {
-                name: playerName,
-                isHost: isHost,
-                score: playersData[userId]?.score || 0,
-                answers: playersData[userId]?.answers || {}
-            };
+            if (isHost) {
+                try {
+                    await setDoc(GAME_STATE_DOC, { isHostActive: true }, { merge: true });
+                } catch (e) {
+                    console.warn("Set host active warning:", e.message);
+                }
+            } else {
+                const myPlayerData = {
+                    name: playerName,
+                    isHost: false,
+                    score: playersData[userId]?.score || 0,
+                    answers: playersData[userId]?.answers || {}
+                };
 
-            playersData[userId] = myPlayerData;
+                playersData[userId] = myPlayerData;
 
-            try {
-                const playerRef = doc(db, 'players', userId);
-                await setDoc(playerRef, myPlayerData, { merge: true });
-            } catch (err) {
-                console.warn("Join player Firestore write warning:", err.message);
+                try {
+                    const playerRef = doc(db, 'players', userId);
+                    await setDoc(playerRef, myPlayerData, { merge: true });
+                } catch (err) {
+                    console.warn("Join player Firestore write warning:", err.message);
+                }
             }
 
             updateHostUI();
@@ -921,16 +932,13 @@
         function updateHostUI() {
             const hostControls = document.getElementById('host-controls');
             const hostLobbyPrompt = document.getElementById('host-lobby-prompt');
-            const hostToggleBtn = document.getElementById('host-toggle-btn');
 
             if (isHost) {
                 hostControls.classList.remove('hidden');
                 hostLobbyPrompt.classList.remove('hidden');
-                hostToggleBtn.classList.remove('hidden');
             } else {
                 hostControls.classList.add('hidden');
                 hostLobbyPrompt.classList.add('hidden');
-                hostToggleBtn.classList.add('hidden');
             }
             renderQuestionUI();
         }
@@ -957,8 +965,22 @@
                             isRevealed: !!newRemoteState.isRevealed,
                             gameStarted: !!newRemoteState.gameStarted,
                             gameOver: !!newRemoteState.gameOver,
-                            startTime: newRemoteState.startTime ?? null
+                            startTime: newRemoteState.startTime ?? null,
+                            isHostActive: !!newRemoteState.isHostActive
                         };
+
+                        // Disable host button on login screen if host is already active
+                        const hostBtn = document.getElementById('join-host-btn');
+                        const hostLabel = document.getElementById('host-btn-label');
+                        if (hostBtn && hostLabel) {
+                            if (gameState.isHostActive && !isHost) {
+                                hostBtn.disabled = true;
+                                hostLabel.innerText = "Host Already Active";
+                            } else {
+                                hostBtn.disabled = false;
+                                hostLabel.innerText = "Host/Present Game";
+                            }
+                        }
                     }
                     renderQuestionUI();
                     renderLeaderboardAndTally();
