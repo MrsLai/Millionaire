@@ -16,7 +16,6 @@
             min-height: 100vh;
         }
 
-        /* Millionaire Hexagon Shapes */
         .hexagon-btn {
             position: relative;
             background: linear-gradient(180deg, #102A43 0%, #001220 100%);
@@ -64,12 +63,6 @@
             100% { box-shadow: 0 0 5px #34D399; }
         }
 
-        .gold-star-badge {
-            background: radial-gradient(circle, #FBBF24 0%, #D97706 100%);
-            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-        }
-
-        /* Glassmorphism containers */
         .glass-card {
             background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(10px);
@@ -77,7 +70,6 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
         }
 
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -92,7 +84,6 @@
 </head>
 <body class="flex flex-col min-h-screen justify-between p-2 md:p-6 overflow-x-hidden">
 
-    <!-- Top Bar -->
     <header class="w-full max-w-7xl mx-auto flex flex-wrap justify-between items-center py-2 px-4 glass-card rounded-xl mb-4 border-b-2 border-amber-500">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400 font-bold">
@@ -102,7 +93,7 @@
                 <h1 class="text-xl md:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100">
                     APAC MILLIONAIRE
                 </h1>
-                <p id="room-status" class="text-xs text-sky-400 font-semibold">Connecting to Game Server...</p>
+                <p id="room-status" class="text-xs text-sky-400 font-semibold">Connecting...</p>
             </div>
         </div>
 
@@ -116,10 +107,9 @@
         </div>
     </header>
 
-    <!-- Screen 1: Login & Join -->
     <div id="login-screen" class="max-w-md w-full mx-auto my-auto glass-card p-8 rounded-2xl text-center shadow-2xl">
         <div class="w-20 h-20 bg-gradient-to-tr from-amber-500 to-amber-300 rounded-full mx-auto mb-6 flex items-center justify-center text-slate-950 text-3xl font-black shadow-lg shadow-amber-500/20">
-            <i class="fa-solid fa-[#000] fa-question"></i>
+            <i class="fa-solid fa-question"></i>
         </div>
         <h2 class="text-2xl font-extrabold mb-2 text-white">Join Quiz Game</h2>
         <p class="text-slate-400 text-sm mb-6">Enter your name to join your APAC teammates live!</p>
@@ -141,13 +131,8 @@
         </form>
     </div>
 
-    <!-- Screen 2: Main Game Area -->
     <main id="game-screen" class="hidden w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        
-        <!-- Left/Center Stage: Question & Lifelines (3 cols on large) -->
         <div class="lg:col-span-3 flex flex-col gap-4">
-            
-            <!-- Host Controller Bar (Visible only to Host) -->
             <div id="host-controls" class="hidden glass-card p-4 rounded-xl border-2 border-amber-500/60 bg-amber-950/20">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
@@ -174,7 +159,6 @@
                 </div>
             </div>
 
-            <!-- Lifelines Header Display -->
             <div class="flex justify-center items-center gap-4 my-2">
                 <div class="w-16 h-12 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-lg hover:scale-105 transition cursor-pointer" title="Ask Phone Friend">
                     <i class="fa-solid fa-mobile-screen-button"></i>
@@ -187,14 +171,12 @@
                 </div>
             </div>
 
-            <!-- Question Box -->
             <div class="hexagon-btn p-6 md:p-8 text-center my-2 shadow-2xl flex items-center justify-center min-h-[120px] border-amber-400/80">
                 <h3 id="question-text" class="text-lg md:text-2xl font-bold text-white tracking-wide leading-relaxed">
                     Waiting for the host to start the game...
                 </h3>
             </div>
 
-            <!-- Options Grid (A, B, C, D) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 <button id="opt-A" data-option="A" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
                     <span class="text-amber-400 font-extrabold text-lg">A:</span>
@@ -214,14 +196,12 @@
                 </button>
             </div>
 
-            <!-- Lock Answer Button for Players -->
             <div class="flex justify-center mt-4">
                 <button id="lock-in-btn" disabled class="bg-gradient-to-r from-amber-500 to-amber-600 disabled:opacity-40 disabled:cursor-not-allowed hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-10 rounded-xl transition transform active:scale-95 shadow-xl text-lg flex items-center gap-2">
                     <i class="fa-solid fa-lock"></i> LOCK IN ANSWER
                 </button>
             </div>
 
-            <!-- Live Choice Tally Breakdown -->
             <div id="tally-box" class="glass-card p-4 rounded-xl mt-4">
                 <h4 class="text-xs uppercase font-bold text-sky-400 tracking-wider mb-2 flex items-center justify-between">
                     <span><i class="fa-solid fa-chart-column mr-1"></i> Live Team Selections</span>
@@ -246,23 +226,16 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
-        <!-- Right Side Sidebar: Ladder & Scoreboard (1 col on large) -->
         <div class="flex flex-col gap-4">
-            
-            <!-- Prize Ladder (Millionaire Style) -->
             <div class="glass-card p-4 rounded-xl border-l-4 border-amber-400">
                 <h3 class="text-sm font-bold text-amber-400 tracking-wider uppercase mb-3 flex items-center gap-2">
                     <i class="fa-solid fa-layer-group"></i> Question Ladder
                 </h3>
-                <div id="money-ladder" class="space-y-1 text-xs font-bold font-mono">
-                    <!-- Dynamic Ladder Items -->
-                </div>
+                <div id="money-ladder" class="space-y-1 text-xs font-bold font-mono"></div>
             </div>
 
-            <!-- Live Leaderboard -->
             <div class="glass-card p-4 rounded-xl flex-1 flex flex-col">
                 <h3 class="text-sm font-bold text-sky-400 tracking-wider uppercase mb-3 flex items-center justify-between">
                     <span><i class="fa-solid fa-users text-amber-400 mr-1"></i> Live Scoreboard</span>
@@ -272,17 +245,13 @@
                     <p class="text-xs text-slate-500 italic text-center py-4">Waiting for team members...</p>
                 </div>
             </div>
-
         </div>
-
     </main>
 
-    <!-- Footer -->
     <footer class="mt-8 text-center text-xs text-slate-500 py-2">
-        APAC Interactive Team Quiz &bull; Embeddable SharePoint Web App
+        APAC Interactive Team Quiz &bull; GitHub Pages Web App
     </footer>
 
-    <!-- Host Question Editor Modal -->
     <div id="questions-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="glass-card max-w-2xl w-full max-h-[85vh] flex flex-col rounded-2xl p-6 border-amber-500/50 shadow-2xl">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
@@ -292,9 +261,7 @@
                 <button id="close-modal-btn" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
             </div>
             
-            <div id="modal-questions-list" class="flex-1 overflow-y-auto space-y-4 pr-2 my-2">
-                <!-- Dynamically generated question forms -->
-            </div>
+            <div id="modal-questions-list" class="flex-1 overflow-y-auto space-y-4 pr-2 my-2"></div>
 
             <div class="flex flex-wrap justify-between items-center gap-2 pt-4 border-t border-slate-700">
                 <button id="add-question-btn" class="bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/40 text-xs px-4 py-2 rounded-xl transition flex items-center gap-1 font-semibold">
@@ -314,39 +281,22 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInAnonymously, 
-            signInWithCustomToken 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            onSnapshot, 
-            collection, 
-            updateDoc, 
-            deleteDoc,
-            getDocs
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global environment variables provided by environment fallback safely
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'apac-millionaire-quiz';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "demo-key",
-            authDomain: "demo.firebaseapp.com",
-            projectId: "demo-project",
-            storageBucket: "demo.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:demo"
+        const firebaseConfig = {
+            apiKey: "AIzaSyCI2LQ7K5XVuu7Nnu7waS9xqpSFl5mt75k",
+            authDomain: "apac-quiz.firebaseapp.com",
+            projectId: "apac-quiz",
+            storageBucket: "apac-quiz.firebasestorage.app",
+            messagingSenderId: "563513055714",
+            appId: "1:563513055714:web:aaa0f47e4a5348245ec1bb"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Default initial questions
         let QUESTIONS = [
             {
                 q: "Which APAC city is home to the world's highest rooftop infinity pool?",
@@ -380,45 +330,38 @@
             }
         ];
 
-        // App State
         let currentUser = null;
+        let userId = "";
         let playerName = "";
         let isHost = false;
         let selectedOption = null;
-        let gameState = {
-            currentQuestion: 0,
-            isRevealed: false,
-            active: true
-        };
+        let gameState = { currentQuestion: 0, isRevealed: false, active: true };
         let playersData = {};
 
-        // Firestore Strict Paths
-        const GAME_STATE_DOC = doc(db, 'artifacts', appId, 'public', 'data', 'game_room', 'state');
-        const QUESTIONS_DOC = doc(db, 'artifacts', appId, 'public', 'data', 'game_room', 'questions');
-        const PLAYERS_COLLECTION = collection(db, 'artifacts', appId, 'public', 'data', 'players');
+        const GAME_STATE_DOC = doc(db, 'game_room', 'state');
+        const QUESTIONS_DOC = doc(db, 'game_room', 'questions');
+        const PLAYERS_COLLECTION = collection(db, 'players');
 
         async function initAuth() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                currentUser = auth.currentUser;
+                const res = await signInAnonymously(auth);
+                currentUser = res.user;
+                userId = currentUser.uid;
                 document.getElementById('room-status').innerText = "Connected Live";
                 document.getElementById('room-status').classList.replace('text-sky-400', 'text-emerald-400');
             } catch (err) {
-                console.error("Auth error:", err);
-                document.getElementById('room-status').innerText = "Offline Mode";
+                console.warn("Firebase Auth Error fallback triggered:", err.message);
+                // Fallback ID generation if Anonymous Auth is disabled in Firebase Console
+                userId = "guest_" + Math.random().toString(36).substring(2, 10);
+                currentUser = { uid: userId };
+                document.getElementById('room-status').innerText = "Connected (Guest Mode)";
+                document.getElementById('room-status').classList.replace('text-sky-400', 'text-amber-400');
             }
         }
 
-        // Render Question Ladder
         function renderLadder(currentIdx) {
             const ladderEl = document.getElementById('money-ladder');
             ladderEl.innerHTML = '';
-            
-            // Render top to bottom
             for (let i = QUESTIONS.length - 1; i >= 0; i--) {
                 const stepNum = i + 1;
                 const isCurrent = i === currentIdx;
@@ -437,9 +380,7 @@
             }
         }
 
-        // Setup Event Listeners
         function setupEventListeners() {
-            // Role selection / Join Form
             document.getElementById('join-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 joinGame(false);
@@ -454,11 +395,9 @@
                 updateHostUI();
             });
 
-            // Answer Selection
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     if (gameState.isRevealed || isHost) return;
-                    
                     document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
                     selectedOption = btn.getAttribute('data-option');
@@ -466,12 +405,10 @@
                 });
             });
 
-            // Lock In Button
             document.getElementById('lock-in-btn').addEventListener('click', async () => {
-                if (!selectedOption || !currentUser) return;
-                
+                if (!selectedOption || !userId) return;
                 try {
-                    const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', currentUser.uid);
+                    const playerDocRef = doc(db, 'players', userId);
                     await updateDoc(playerDocRef, {
                         [`answers.q${gameState.currentQuestion}`]: selectedOption,
                         locked: true
@@ -483,25 +420,21 @@
                 }
             });
 
-            // Host Controls
             document.getElementById('reveal-answer-btn').addEventListener('click', async () => {
                 if (!isHost) return;
-                
-                // Calculate and update score for players who got it correct
                 const currentQ = QUESTIONS[gameState.currentQuestion];
                 for (const pid in playersData) {
                     const p = playersData[pid];
                     const playerAns = p.answers ? p.answers[`q${gameState.currentQuestion}`] : null;
                     if (playerAns === currentQ.correct && !p[`scored_q${gameState.currentQuestion}`]) {
                         const newScore = (p.score || 0) + 100;
-                        const pRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', pid);
+                        const pRef = doc(db, 'players', pid);
                         await updateDoc(pRef, {
                             score: newScore,
                             [`scored_q${gameState.currentQuestion}`]: true
                         });
                     }
                 }
-
                 await updateDoc(GAME_STATE_DOC, { isRevealed: true });
             });
 
@@ -525,7 +458,6 @@
                 }
             });
 
-            // Question Editor Controls
             document.getElementById('edit-questions-btn').addEventListener('click', () => {
                 if (!isHost) return;
                 openQuestionsModal();
@@ -577,7 +509,6 @@
 
             document.getElementById('reset-game-btn').addEventListener('click', async () => {
                 if (!isHost) return;
-                // Reset all player answers
                 const querySnap = await getDocs(PLAYERS_COLLECTION);
                 querySnap.forEach(async (pDoc) => {
                     await updateDoc(doc(PLAYERS_COLLECTION, pDoc.id), {
@@ -649,9 +580,8 @@
             document.getElementById('game-screen').classList.remove('hidden');
             document.getElementById('user-info-bar').classList.remove('hidden');
 
-            // Register player in Firestore
-            if (currentUser) {
-                const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', currentUser.uid);
+            if (userId) {
+                const playerRef = doc(db, 'players', userId);
                 await setDoc(playerRef, {
                     name: playerName,
                     isHost: isHost,
@@ -677,31 +607,25 @@
             }
         }
 
-        // Live Listeners for Game State and Players
         function listenToRoomUpdates() {
-            // Synchronize Questions
             onSnapshot(QUESTIONS_DOC, (snap) => {
                 if (snap.exists() && snap.data().list?.length) {
                     QUESTIONS = snap.data().list;
                     renderQuestionUI();
                 } else {
-                    // Save default questions to cloud if non-existent
                     setDoc(QUESTIONS_DOC, { list: QUESTIONS });
                 }
             }, (err) => console.error("Questions Sync Error:", err));
 
-            // Listen to game state changes
             onSnapshot(GAME_STATE_DOC, (docSnap) => {
                 if (docSnap.exists()) {
                     gameState = docSnap.data();
                 } else {
-                    // Initialize if missing
                     setDoc(GAME_STATE_DOC, { currentQuestion: 0, isRevealed: false, active: true });
                 }
                 renderQuestionUI();
             }, (err) => console.error("Game State Sync Error:", err));
 
-            // Listen to players list and answers
             onSnapshot(PLAYERS_COLLECTION, (snapshot) => {
                 playersData = {};
                 snapshot.forEach(doc => {
@@ -712,7 +636,6 @@
         }
 
         function renderQuestionUI() {
-            // Bound check for current question index
             if (gameState.currentQuestion >= QUESTIONS.length) {
                 gameState.currentQuestion = 0;
             }
@@ -721,7 +644,6 @@
             document.getElementById('question-text').innerText = qData.q;
             document.getElementById('host-q-status').innerText = `Question ${gameState.currentQuestion + 1} of ${QUESTIONS.length}`;
 
-            // Reset option button styling
             const options = ['A', 'B', 'C', 'D'];
             options.forEach(opt => {
                 const btn = document.getElementById(`opt-${opt}`);
@@ -730,23 +652,20 @@
 
                 btn.className = 'option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3';
                 
-                // If user already locked an option for this question
-                if (currentUser && playersData[currentUser.uid]?.answers?.[`q${gameState.currentQuestion}`] === opt) {
+                if (userId && playersData[userId]?.answers?.[`q${gameState.currentQuestion}`] === opt) {
                     btn.classList.add('selected');
                 }
 
-                // If host revealed answers
                 if (gameState.isRevealed) {
                     if (opt === qData.correct) {
                         btn.classList.add('correct');
-                    } else if (currentUser && playersData[currentUser.uid]?.answers?.[`q${gameState.currentQuestion}`] === opt) {
+                    } else if (userId && playersData[userId]?.answers?.[`q${gameState.currentQuestion}`] === opt) {
                         btn.classList.add('wrong');
                     }
                 }
             });
 
-            // Update lock-in button state
-            const myAns = currentUser ? playersData[currentUser.uid]?.answers?.[`q${gameState.currentQuestion}`] : null;
+            const myAns = userId ? playersData[userId]?.answers?.[`q${gameState.currentQuestion}`] : null;
             const lockBtn = document.getElementById('lock-in-btn');
             
             if (myAns) {
@@ -765,8 +684,6 @@
             leaderboardEl.innerHTML = '';
 
             const playersArray = Object.keys(playersData).map(id => ({ id, ...playersData[id] }));
-            
-            // Sort players by score descending
             playersArray.sort((a, b) => (b.score || 0) - (a.score || 0));
 
             document.getElementById('player-count').innerText = `${playersArray.length} Joined`;
@@ -781,7 +698,7 @@
                     lockedCount++;
                 }
 
-                const isMe = p.id === currentUser?.uid;
+                const isMe = p.id === userId;
                 const badgeColor = idx === 0 ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-300';
 
                 leaderboardEl.innerHTML += `
@@ -802,7 +719,6 @@
                 `;
             });
 
-            // Update live selection tallies
             document.getElementById('tally-A').innerText = tally.A;
             document.getElementById('tally-B').innerText = tally.B;
             document.getElementById('tally-C').innerText = tally.C;
@@ -810,7 +726,6 @@
             document.getElementById('locked-count-text').innerText = `${lockedCount}/${playersArray.length} Locked In`;
         }
 
-        // App Initialization
         window.onload = async () => {
             await initAuth();
             setupEventListeners();
