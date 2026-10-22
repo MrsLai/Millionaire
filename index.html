@@ -339,11 +339,11 @@
             }
         ];
 
-        // Ensure unique user ID per browser session
-        let userId = localStorage.getItem('apac_user_session');
+        // Ensure unique user ID per browser session (cleared when browser tab/window closes)
+        let userId = sessionStorage.getItem('apac_user_session');
         if (!userId) {
             userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-            localStorage.setItem('apac_user_session', userId);
+            sessionStorage.setItem('apac_user_session', userId);
         }
 
         let playerName = "";
@@ -351,6 +351,15 @@
         let selectedOption = null;
         let gameState = { currentQuestion: 0, isRevealed: false, active: true };
         let playersData = {};
+
+        // Remove player on tab close / refresh
+        window.addEventListener('beforeunload', () => {
+            if (userId && !isHost) {
+                try {
+                    deleteDoc(doc(db, 'players', userId));
+                } catch (e) {}
+            }
+        });
 
         async function initAuth() {
             try {
@@ -699,6 +708,14 @@
             }
         }
 
+        window.removePlayer = async function(pid) {
+            try {
+                await deleteDoc(doc(db, 'players', pid));
+            } catch (e) {
+                console.warn("Remove player warning:", e.message);
+            }
+        };
+
         function renderQuestionUI() {
             if (gameState.currentQuestion >= QUESTIONS.length) {
                 gameState.currentQuestion = 0;
@@ -782,6 +799,7 @@
                             <div class="flex items-center gap-2">
                                 ${currentAns ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/40">Locked</span>' : ''}
                                 <span class="text-xs font-bold text-amber-400 font-mono">${p.score || 0} pts</span>
+                                ${isHost ? `<button onclick="window.removePlayer('${p.id}')" class="text-red-400 hover:text-red-300 ml-1 text-xs" title="Remove Player">&times;</button>` : ''}
                             </div>
                         </div>
                     `;
