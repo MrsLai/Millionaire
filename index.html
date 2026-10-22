@@ -451,7 +451,7 @@
             phone: false
         };
 
-        // Remove active player on browser refresh or close
+        // Remove active player / reset host lock on browser refresh or close
         window.addEventListener('beforeunload', () => {
             if (userId) {
                 if (isHost) {
@@ -975,9 +975,11 @@
                         if (hostBtn && hostLabel) {
                             if (gameState.isHostActive && !isHost) {
                                 hostBtn.disabled = true;
+                                hostBtn.classList.add('opacity-50', 'cursor-not-allowed');
                                 hostLabel.innerText = "Host Already Active";
                             } else {
                                 hostBtn.disabled = false;
+                                hostBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                                 hostLabel.innerText = "Host/Present Game";
                             }
                         }
