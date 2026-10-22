@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APAC Team Millionaire Quiz</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet">
     
     <style>
@@ -133,6 +136,7 @@
 
     <main id="game-screen" class="hidden w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         <div class="lg:col-span-3 flex flex-col gap-4">
+            <!-- Host Action Controls -->
             <div id="host-controls" class="hidden glass-card p-4 rounded-xl border-2 border-amber-500/60 bg-amber-950/20">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
@@ -159,6 +163,7 @@
                 </div>
             </div>
 
+            <!-- Lifelines -->
             <div class="flex justify-center items-center gap-4 my-2">
                 <div class="w-16 h-12 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-lg hover:scale-105 transition cursor-pointer" title="Ask Phone Friend">
                     <i class="fa-solid fa-mobile-screen-button"></i>
@@ -171,12 +176,14 @@
                 </div>
             </div>
 
+            <!-- Question Display -->
             <div class="hexagon-btn p-6 md:p-8 text-center my-2 shadow-2xl flex items-center justify-center min-h-[120px] border-amber-400/80">
                 <h3 id="question-text" class="text-lg md:text-2xl font-bold text-white tracking-wide leading-relaxed">
                     Waiting for the host to start the game...
                 </h3>
             </div>
 
+            <!-- Answer Options -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 <button id="opt-A" data-option="A" class="option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3">
                     <span class="text-amber-400 font-extrabold text-lg">A:</span>
@@ -196,12 +203,14 @@
                 </button>
             </div>
 
+            <!-- Lock in button -->
             <div class="flex justify-center mt-4">
                 <button id="lock-in-btn" disabled class="bg-gradient-to-r from-amber-500 to-amber-600 disabled:opacity-40 disabled:cursor-not-allowed hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-10 rounded-xl transition transform active:scale-95 shadow-xl text-lg flex items-center gap-2">
                     <i class="fa-solid fa-lock"></i> LOCK IN ANSWER
                 </button>
             </div>
 
+            <!-- Live Audience Tally -->
             <div id="tally-box" class="glass-card p-4 rounded-xl mt-4">
                 <h4 class="text-xs uppercase font-bold text-sky-400 tracking-wider mb-2 flex items-center justify-between">
                     <span><i class="fa-solid fa-chart-column mr-1"></i> Live Team Selections</span>
@@ -228,6 +237,7 @@
             </div>
         </div>
 
+        <!-- Sidebar: Money Ladder & Leaderboard -->
         <div class="flex flex-col gap-4">
             <div class="glass-card p-4 rounded-xl border-l-4 border-amber-400">
                 <h3 class="text-sm font-bold text-amber-400 tracking-wider uppercase mb-3 flex items-center gap-2">
@@ -281,10 +291,14 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = {
+        // Global app configuration context
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'apac-millionaire-app';
+        const rawFirebaseConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+
+        const firebaseConfig = rawFirebaseConfig ? JSON.parse(rawFirebaseConfig) : {
             apiKey: "AIzaSyCI2LQ7K5XVuu7Nnu7waS9xqpSFl5mt75k",
             authDomain: "apac-quiz.firebaseapp.com",
             projectId: "apac-quiz",
@@ -296,6 +310,11 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // Standard Firestore artifact paths compliance
+        const GAME_STATE_DOC = doc(db, 'artifacts', appId, 'public', 'data', 'game_room', 'state');
+        const QUESTIONS_DOC = doc(db, 'artifacts', appId, 'public', 'data', 'game_room', 'questions');
+        const PLAYERS_COLLECTION = collection(db, 'artifacts', appId, 'public', 'data', 'players');
 
         let QUESTIONS = [
             {
@@ -338,18 +357,19 @@
         let playersData = {};
         let isOfflineMode = false;
 
-        const GAME_STATE_DOC = doc(db, 'game_room', 'state');
-        const QUESTIONS_DOC = doc(db, 'game_room', 'questions');
-        const PLAYERS_COLLECTION = collection(db, 'players');
-
         async function initAuth() {
             try {
-                const res = await signInAnonymously(auth);
+                let res;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    res = await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    res = await signInAnonymously(auth);
+                }
                 userId = res.user.uid;
                 document.getElementById('room-status').innerText = "Connected Live";
                 document.getElementById('room-status').className = "text-xs text-emerald-400 font-semibold";
             } catch (err) {
-                console.warn("Firebase Auth notice:", err.message);
+                console.warn("Firebase Auth Notice:", err.message);
                 enableLocalFallback("Local Standalone Mode");
             }
         }
@@ -410,7 +430,6 @@
             document.getElementById('lock-in-btn').addEventListener('click', async () => {
                 if (!selectedOption || !userId) return;
                 
-                // Always update local state
                 if (!playersData[userId]) {
                     playersData[userId] = { name: playerName, score: 0, answers: {} };
                 }
@@ -422,7 +441,7 @@
 
                 if (!isOfflineMode) {
                     try {
-                        const playerDocRef = doc(db, 'players', userId);
+                        const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', userId);
                         await updateDoc(playerDocRef, {
                             [`answers.q${gameState.currentQuestion}`]: selectedOption,
                             locked: true
@@ -445,7 +464,7 @@
                         p[`scored_q${gameState.currentQuestion}`] = true;
                         if (!isOfflineMode) {
                             try {
-                                const pRef = doc(db, 'players', pid);
+                                const pRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', pid);
                                 await updateDoc(pRef, {
                                     score: p.score,
                                     [`scored_q${gameState.currentQuestion}`]: true
@@ -655,11 +674,10 @@
 
             if (userId && !isOfflineMode) {
                 try {
-                    const playerRef = doc(db, 'players', userId);
+                    const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', userId);
                     await setDoc(playerRef, playersData[userId], { merge: true });
                 } catch (err) {
-                    console.warn("Join player Firestore write warning (proceeding in live view):", err.message);
-                    // Do not drop to offline mode immediately on permission write fail if auth is alive
+                    console.warn("Join player Firestore write warning:", err.message);
                 }
             }
 
