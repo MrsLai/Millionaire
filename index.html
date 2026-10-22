@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -206,15 +206,15 @@
 
                 <!-- Lifelines -->
                 <div class="flex justify-center items-center gap-4 my-1">
-                    <div class="w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-base hover:scale-105 transition cursor-pointer" title="Ask Phone Friend">
+                    <button id="lifeline-phone" class="lifeline-btn w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-base hover:scale-105 transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100" title="Ask Phone Friend">
                         <i class="fa-solid fa-mobile-screen-button"></i>
-                    </div>
-                    <div class="w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-base hover:scale-105 transition cursor-pointer" title="Ask the Audience">
+                    </button>
+                    <button id="lifeline-audience" class="lifeline-btn w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 shadow-lg text-base hover:scale-105 transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100" title="Ask the Audience">
                         <i class="fa-solid fa-users"></i>
-                    </div>
-                    <div class="w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 font-extrabold text-xs shadow-lg hover:scale-105 transition cursor-pointer" title="50:50">
+                    </button>
+                    <button id="lifeline-5050" class="lifeline-btn w-14 h-10 rounded-full border-2 border-sky-400/80 bg-gradient-to-b from-blue-900 to-sky-950 flex items-center justify-center text-sky-300 font-extrabold text-xs shadow-lg hover:scale-105 transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100" title="50:50">
                         50:50
-                    </div>
+                    </button>
                 </div>
 
                 <!-- Question Display -->
@@ -330,6 +330,22 @@
         APAC Interactive Team Quiz &bull; GitHub Pages Web App
     </footer>
 
+    <!-- Lifeline Friend Modal -->
+    <div id="lifeline-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-2xl p-6 border-amber-500/50 shadow-2xl text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-sky-500/20 border border-sky-400 flex items-center justify-center text-sky-400 text-2xl mx-auto">
+                <i class="fa-solid fa-phone-volume animate-pulse"></i>
+            </div>
+            <h3 id="lifeline-modal-title" class="text-lg font-bold text-amber-400">Phone a Friend</h3>
+            <p id="lifeline-modal-body" class="text-sm text-slate-200 leading-relaxed bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                Contacting your APAC teammate for advice...
+            </p>
+            <button id="close-lifeline-modal" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-lg">
+                Got It!
+            </button>
+        </div>
+    </div>
+
     <div id="questions-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="glass-card max-w-2xl w-full max-h-[85vh] flex flex-col rounded-2xl p-6 border-amber-500/50 shadow-2xl">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
@@ -428,6 +444,13 @@
         let playersData = {};
         let timerInterval = null;
 
+        // Lifeline tracking for current player
+        let usedLifelines = {
+            fiftyFifty: false,
+            audience: false,
+            phone: false
+        };
+
         // Remove active player on browser refresh or close
         window.addEventListener('beforeunload', () => {
             if (userId && !isHost) {
@@ -448,6 +471,8 @@
                 document.getElementById('room-status').className = "text-xs text-emerald-400 font-semibold";
             }
             listenToRoomUpdates();
+            setupEventListeners();
+            startLocalTimer();
         }
 
         function renderLadder(currentIdx) {
@@ -729,6 +754,64 @@
                 }
             });
 
+            // --- Lifelines Functionality ---
+            document.getElementById('lifeline-5050').addEventListener('click', () => {
+                if (usedLifelines.fiftyFifty || gameState.isRevealed || !gameState.gameStarted) return;
+                
+                const currentQ = QUESTIONS[gameState.currentQuestion];
+                if (!currentQ) return;
+
+                const options = ['A', 'B', 'C', 'D'];
+                const incorrectOptions = options.filter(opt => opt !== currentQ.correct);
+                
+                incorrectOptions.sort(() => Math.random() - 0.5);
+                const toRemove = incorrectOptions.slice(0, 2);
+
+                toRemove.forEach(opt => {
+                    const btn = document.getElementById(`opt-${opt}`);
+                    if (btn) {
+                        btn.style.opacity = "0.2";
+                        btn.style.pointerEvents = "none";
+                        btn.querySelector('.opt-text').innerText = "— [50:50 Removed] —";
+                    }
+                });
+
+                usedLifelines.fiftyFifty = true;
+                document.getElementById('lifeline-5050').disabled = true;
+            });
+
+            document.getElementById('lifeline-audience').addEventListener('click', () => {
+                if (usedLifelines.audience || !gameState.gameStarted) return;
+
+                const tallyBox = document.getElementById('tally-box');
+                if (tallyBox) {
+                    tallyBox.scrollIntoView({ behavior: 'smooth' });
+                    tallyBox.classList.add('ring-2', 'ring-amber-400');
+                    setTimeout(() => tallyBox.classList.remove('ring-2', 'ring-amber-400'), 3000);
+                }
+
+                usedLifelines.audience = true;
+                document.getElementById('lifeline-audience').disabled = true;
+            });
+
+            document.getElementById('lifeline-phone').addEventListener('click', () => {
+                if (usedLifelines.phone || !gameState.gameStarted) return;
+
+                const currentQ = QUESTIONS[gameState.currentQuestion];
+                const friendAdvice = `Your friend says: "I'm about 80% sure the answer is Option ${currentQ.correct}!"`;
+                
+                document.getElementById('lifeline-modal-title').innerText = "Phone a Friend";
+                document.getElementById('lifeline-modal-body').innerText = friendAdvice;
+                document.getElementById('lifeline-modal').classList.remove('hidden');
+
+                usedLifelines.phone = true;
+                document.getElementById('lifeline-phone').disabled = true;
+            });
+
+            document.getElementById('close-lifeline-modal').addEventListener('click', () => {
+                document.getElementById('lifeline-modal').classList.add('hidden');
+            });
+
             document.getElementById('reset-game-btn').addEventListener('click', async () => {
                 if (!isHost) return;
                 gameState.currentQuestion = 0;
@@ -736,6 +819,9 @@
                 gameState.gameStarted = false;
                 gameState.gameOver = false;
                 gameState.startTime = null;
+
+                usedLifelines = { fiftyFifty: false, audience: false, phone: false };
+                document.querySelectorAll('.lifeline-btn').forEach(btn => btn.disabled = false);
 
                 try {
                     const querySnap = await getDocs(PLAYERS_COLLECTION);
@@ -903,12 +989,106 @@
             }
         };
 
+        function renderWinnerSection() {
+            const activePlayers = Object.entries(playersData)
+                .map(([id, data]) => ({ id, ...data }))
+                .filter(p => !p.isHost)
+                .sort((a, b) => (b.score || 0) - (a.score || 0));
+
+            const winner = activePlayers[0];
+            document.getElementById('winner-name').innerText = winner ? winner.name : "No Players";
+            document.getElementById('winner-prize').innerText = "$1,000,000 Monopoly Money";
+
+            const podiumList = document.getElementById('winner-podium-list');
+            podiumList.innerHTML = '';
+
+            activePlayers.forEach((player, idx) => {
+                let badge = `<span class="font-bold text-slate-400">#${idx + 1}</span>`;
+                if (idx === 0) badge = `<i class="fa-solid fa-crown text-amber-400 text-base"></i>`;
+                else if (idx === 1) badge = `<i class="fa-solid fa-medal text-slate-300 text-base"></i>`;
+                else if (idx === 2) badge = `<i class="fa-solid fa-award text-amber-700 text-base"></i>`;
+
+                podiumList.innerHTML += `
+                    <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            ${badge}
+                            <span class="font-bold text-white text-sm">${player.name}</span>
+                        </div>
+                        <span class="font-mono text-amber-400 font-bold text-sm">${player.score || 0} pts</span>
+                    </div>
+                `;
+            });
+        }
+
+        function renderLeaderboardAndTally() {
+            const listEl = document.getElementById('leaderboard-list');
+            const playerCountEl = document.getElementById('player-count');
+            const lobbyCountEl = document.getElementById('lobby-player-count');
+
+            const activePlayers = Object.entries(playersData)
+                .map(([id, data]) => ({ id, ...data }))
+                .filter(p => !p.isHost)
+                .sort((a, b) => (b.score || 0) - (a.score || 0));
+
+            playerCountEl.innerText = `${activePlayers.length} Joined`;
+            if (lobbyCountEl) lobbyCountEl.innerText = activePlayers.length;
+
+            if (activePlayers.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">Waiting for team members...</p>`;
+            } else {
+                listEl.innerHTML = '';
+                activePlayers.forEach((p) => {
+                    const hasAnswered = p.answers && p.answers[`q${gameState.currentQuestion}`];
+                    const isMe = p.id === userId;
+
+                    let statusBadge = '';
+                    if (gameState.gameStarted && !gameState.gameOver) {
+                        if (hasAnswered) {
+                            statusBadge = `<span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">Locked</span>`;
+                        } else {
+                            statusBadge = `<span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">Thinking</span>`;
+                        }
+                    }
+
+                    listEl.innerHTML += `
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border ${isMe ? 'border-amber-400/80' : 'border-slate-800'} text-xs">
+                            <div class="flex items-center gap-2 truncate">
+                                <span class="font-bold text-white truncate">${p.name} ${isMe ? '<span class="text-amber-400 text-[10px]">(You)</span>' : ''}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${statusBadge}
+                                <span class="font-mono text-amber-400 font-bold">${p.score || 0} pts</span>
+                                ${isHost ? `<button onclick="removePlayer('${p.id}')" class="text-red-400 hover:text-red-300 px-1" title="Remove Player">&times;</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Calculate Tallies for Option A, B, C, D
+            const counts = { A: 0, B: 0, C: 0, D: 0 };
+            let totalLocked = 0;
+
+            activePlayers.forEach(p => {
+                const ans = p.answers ? p.answers[`q${gameState.currentQuestion}`] : null;
+                if (ans && counts[ans] !== undefined) {
+                    counts[ans]++;
+                    totalLocked++;
+                }
+            });
+
+            document.getElementById('tally-A').innerText = counts.A;
+            document.getElementById('tally-B').innerText = counts.B;
+            document.getElementById('tally-C').innerText = counts.C;
+            document.getElementById('tally-D').innerText = counts.D;
+            document.getElementById('locked-count-text').innerText = `${totalLocked}/${activePlayers.length} Locked In`;
+        }
+
         function renderQuestionUI() {
             const lobbyCard = document.getElementById('lobby-card');
             const activeQuizView = document.getElementById('active-quiz-view');
             const winnerScreen = document.getElementById('winner-screen');
 
-            // 1. GAME OVER / WINNER SCREEN
             if (gameState.gameOver && gameState.isRevealed) {
                 lobbyCard.classList.add('hidden');
                 activeQuizView.classList.add('hidden');
@@ -920,7 +1100,6 @@
                 winnerScreen.classList.add('hidden');
             }
 
-            // 2. LOBBY WAITING MODE
             if (!gameState.gameStarted) {
                 lobbyCard.classList.remove('hidden');
                 activeQuizView.classList.add('hidden');
@@ -929,7 +1108,6 @@
                 return;
             }
 
-            // 3. ACTIVE QUIZ PLAY
             lobbyCard.classList.add('hidden');
             activeQuizView.classList.remove('hidden');
 
@@ -947,6 +1125,9 @@
             options.forEach(opt => {
                 const btn = document.getElementById(`opt-${opt}`);
                 const optTextSpan = btn.querySelector('.opt-text');
+                
+                btn.style.opacity = "1";
+                btn.style.pointerEvents = "auto";
                 optTextSpan.innerText = qData.options[opt];
 
                 btn.className = 'option-btn hexagon-btn p-4 text-left font-semibold text-sm md:text-base flex items-center gap-3';
@@ -977,103 +1158,7 @@
             renderLadder(gameState.currentQuestion);
         }
 
-        function renderWinnerSection() {
-            const playersArray = Object.keys(playersData)
-                .map(id => ({ id, ...playersData[id] }))
-                .filter(p => !p.isHost);
-
-            playersArray.sort((a, b) => (b.score || 0) - (a.score || 0));
-
-            const winnerNameEl = document.getElementById('winner-name');
-            const winnerPrizeEl = document.getElementById('winner-prize');
-            const podiumListEl = document.getElementById('winner-podium-list');
-
-            if (playersArray.length > 0) {
-                const winner = playersArray[0];
-                winnerNameEl.innerText = winner.name || "Anonymous";
-
-                const maxScore = winner.score || 0;
-                winnerPrizeEl.innerText = maxScore > 0 ? "$1,000,000 Monopoly Money" : "$0";
-
-                podiumListEl.innerHTML = '';
-                playersArray.forEach((p, idx) => {
-                    const badgeIcon = idx === 0 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${idx + 1}`;
-                    podiumListEl.innerHTML += `
-                        <div class="flex justify-between items-center bg-slate-900/90 border border-slate-700 px-4 py-2 rounded-xl text-xs">
-                            <span class="font-bold text-slate-200 flex items-center gap-2">
-                                <span class="w-6 font-extrabold text-amber-400">${badgeIcon}</span> ${p.name || 'Anonymous'}
-                            </span>
-                            <span class="font-mono font-bold text-amber-300">${p.score || 0} pts</span>
-                        </div>
-                    `;
-                });
-            } else {
-                winnerNameEl.innerText = "No Players Joined";
-                winnerPrizeEl.innerText = "$0";
-                podiumListEl.innerHTML = `<p class="text-xs text-slate-500 italic">No player stats available.</p>`;
-            }
-        }
-
-        function renderLeaderboardAndTally() {
-            const leaderboardEl = document.getElementById('leaderboard-list');
-            leaderboardEl.innerHTML = '';
-
-            const playersArray = Object.keys(playersData).map(id => ({ id, ...playersData[id] }));
-            playersArray.sort((a, b) => (b.score || 0) - (a.score || 0));
-
-            const nonHostCount = playersArray.filter(p => !p.isHost).length;
-            document.getElementById('player-count').innerText = `${nonHostCount} Joined`;
-            document.getElementById('lobby-player-count').innerText = nonHostCount;
-
-            let tally = { A: 0, B: 0, C: 0, D: 0 };
-            let lockedCount = 0;
-
-            if (playersArray.length === 0) {
-                leaderboardEl.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">Waiting for team members...</p>`;
-            } else {
-                playersArray.forEach((p, idx) => {
-                    const currentAns = p.answers ? p.answers[`q${gameState.currentQuestion}`] : null;
-                    if (currentAns && !p.isHost) {
-                        tally[currentAns] = (tally[currentAns] || 0) + 1;
-                        lockedCount++;
-                    }
-
-                    const isMe = p.id === userId;
-                    const badgeColor = idx === 0 ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-300';
-
-                    leaderboardEl.innerHTML += `
-                        <div class="flex items-center justify-between p-2 rounded-lg ${isMe ? 'bg-sky-900/50 border border-sky-400/50' : 'bg-slate-900/60 border border-slate-800'}">
-                            <div class="flex items-center gap-2 overflow-hidden">
-                                <span class="w-5 h-5 rounded-full flex items-center justify-center text-xs ${badgeColor}">
-                                    ${idx + 1}
-                                </span>
-                                <span class="text-xs font-semibold text-slate-200 truncate ${isMe ? 'text-sky-300 font-bold' : ''}">
-                                    ${p.name || 'Anonymous'} ${p.isHost ? '<i class="fa-solid fa-crown text-amber-400 ml-1"></i>' : ''}
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                ${currentAns && !p.isHost ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/40">Locked</span>' : ''}
-                                <span class="text-xs font-bold text-amber-400 font-mono">${p.score || 0} pts</span>
-                                ${isHost ? `<button onclick="window.removePlayer('${p.id}')" class="text-red-400 hover:text-red-300 ml-1 text-xs" title="Remove Player">&times;</button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
-            document.getElementById('tally-A').innerText = tally.A;
-            document.getElementById('tally-B').innerText = tally.B;
-            document.getElementById('tally-C').innerText = tally.C;
-            document.getElementById('tally-D').innerText = tally.D;
-            document.getElementById('locked-count-text').innerText = `${lockedCount}/${nonHostCount} Locked In`;
-        }
-
-        window.onload = async () => {
-            await initAuth();
-            setupEventListeners();
-            startLocalTimer();
-            renderLadder(0);
-        };
+        initAuth();
     </script>
 </body>
 </html>
