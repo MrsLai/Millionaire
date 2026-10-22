@@ -107,7 +107,7 @@
             <span id="player-tag" class="text-sm font-semibold bg-sky-950 border border-sky-600/50 px-3 py-1 rounded-full text-sky-200">
                 <i class="fa-solid fa-user mr-1 text-sky-400"></i> <span id="display-name">Player</span>
             </span>
-            <button id="host-toggle-btn" class="text-xs bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full transition">
+            <button id="host-toggle-btn" class="hidden text-xs bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full transition">
                 Switch Role
             </button>
         </div>
@@ -518,8 +518,10 @@
             });
 
             document.getElementById('host-toggle-btn').addEventListener('click', () => {
-                isHost = !isHost;
-                updateHostUI();
+                if (isHost) {
+                    isHost = false;
+                    updateHostUI();
+                }
             });
 
             const startGameAction = async () => {
@@ -833,13 +835,16 @@
         function updateHostUI() {
             const hostControls = document.getElementById('host-controls');
             const hostLobbyPrompt = document.getElementById('host-lobby-prompt');
+            const hostToggleBtn = document.getElementById('host-toggle-btn');
 
             if (isHost) {
                 hostControls.classList.remove('hidden');
                 hostLobbyPrompt.classList.remove('hidden');
+                hostToggleBtn.classList.remove('hidden');
             } else {
                 hostControls.classList.add('hidden');
                 hostLobbyPrompt.classList.add('hidden');
+                hostToggleBtn.classList.add('hidden');
             }
             renderQuestionUI();
         }
